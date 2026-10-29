@@ -1,0 +1,38 @@
+services:
+  app:
+    build:
+      context: .
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-18080}:80"
+    environment:
+      APP_KEY: "${APP_KEY:-wNsfHMFS81omOruB3wYNu5keRKq0Ji+t4ZDKy61XlVs=}"
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: "${DB_NAME:-auth_app}"
+      DB_USER: "${DB_USER:-auth_user}"
+      DB_PASSWORD: "${DB_PASSWORD:-change_me}"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: "${DB_NAME:-auth_app}"
+      MYSQL_USER: "${DB_USER:-auth_user}"
+      MYSQL_PASSWORD: "${DB_PASSWORD:-change_me}"
+      MYSQL_ROOT_PASSWORD: "${DB_ROOT_PASSWORD:-change_root_me}"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql/001-schema.sql:/docker-entrypoint-initdb.d/001-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+volumes:
+  mysql_data:
